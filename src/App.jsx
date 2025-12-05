@@ -1,52 +1,47 @@
 import React, { useState } from 'react';
 import InputPanel from './components/InputPanel';
 import VisualPanel from './components/VisualPanel';
+import MapPanel from './components/MapPanel';
 import './App.css';
 
 function App() {
-  const [totalSurface, setTotalSurface] = useState(6379);
-
-  // Multi-project state - each project now has its own SDP
+  const [rightPanelMode, setRightPanelMode] = useState('bars');
+  const [totalSurface, setTotalSurface] = useState(0);
   const [projects, setProjects] = useState([
-    { id: 1, name: 'Projet 1', values: {}, sdp: 4500 }
+    { id: 1, name: 'Projet 1', values: {}, sdp: 0 }
   ]);
   const [activeProjectId, setActiveProjectId] = useState(1);
   const [nextProjectId, setNextProjectId] = useState(2);
-
-  // State for Existing (Existant)
   const [existingValues, setExistingValues] = useState({});
+  const [activeTab, setActiveTab] = useState('existing');
 
-  // Active Tab: 'existing' or 'project'
-  const [activeTab, setActiveTab] = useState('project');
+  // Drawing state
+  const [drawingCategoryId, setDrawingCategoryId] = useState(null);
 
-  // Get active project
-  const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
+  // Map persistent state (survives panel switching)
+  const [drawnPolygons, setDrawnPolygons] = useState([]);
+  const [mapCenter, setMapCenter] = useState([46.603354, 1.888334]);
+  const [mapZoom, setMapZoom] = useState(6);
 
-  // Project management functions
   const addProject = () => {
-    if (projects.length >= 4) {
-      alert('Maximum 4 projets simultanés');
-      return;
-    }
+    if (projects.length >= 4) return;
     const newProject = {
       id: nextProjectId,
       name: `Projet ${nextProjectId}`,
       values: {},
-      sdp: 4500 // Default SDP value
+      sdp: 0
     };
     setProjects([...projects, newProject]);
-    setActiveProjectId(nextProjectId);
     setNextProjectId(nextProjectId + 1);
+    setActiveProjectId(newProject.id);
   };
 
   const removeProject = (id) => {
-    if (projects.length === 1) {
-      alert('Vous devez garder au moins un projet');
-      return;
-    }
-    setProjects(projects.filter(p => p.id !== id));
+    if (projects.length <= 1) return;
+    const newProjects = projects.filter(p => p.id !== id);
+    setProjects(newProjects);
     if (activeProjectId === id) {
-      setActiveProjectId(projects[0].id);
+      setActiveProjectId(newProjects[0].id);
     }
   };
 
@@ -58,32 +53,78 @@ function App() {
 
   const setSdpForProject = (sdpValue) => {
     setProjects(projects.map(p =>
-      p.id === activeProjectId
-        ? { ...p, sdp: sdpValue }
-        : p
+      p.id === activeProjectId ? { ...p, sdp: sdpValue } : p
     ));
   };
 
   const handleValueChange = (id, value) => {
     if (activeTab === 'project') {
-      setProjects(projects.map(p =>
-        p.id === activeProjectId
-          ? { ...p, values: { ...p.values, [id]: value } }
-          : p
-      ));
+      setProjects(projects.map(p => {
+        if (p.id === activeProjectId) {
+          return {
+            ...p,
+            values: { ...p.values, [id]: value }
+          };
+        }
+        return p;
+      }));
     } else {
       setExistingValues(prev => ({ ...prev, [id]: value }));
     }
   };
 
+  // Start drawing
+  const startDrawing = (categoryId) => {
+    setRightPanelMode('map');
+    setDrawingCategoryId(categoryId);
+  };
+
+  // Drawing complete
+  const handleDrawingComplete = (categoryId, area) => {
+    if (categoryId === 'TOTAL_SURFACE') {
+      setTotalSurface(prev => prev + area);
+    } else {
+      const currentValues = activeTab === 'project'
+        ? (projects.find(p => p.id === activeProjectId)?.values || {})
+        : existingValues;
+      const currentValue = currentValues[categoryId] || 0;
+      handleValueChange(categoryId, currentValue + area);
+    }
+    setDrawingCategoryId(null);
+  };
+
+  // Delete polygon
+  const handleDeletePolygon = (categoryId, area) => {
+    if (categoryId === 'TOTAL_SURFACE') {
+      setTotalSurface(prev => Math.max(0, prev - area));
+    } else {
+      const currentValues = activeTab === 'project'
+        ? (projects.find(p => p.id === activeProjectId)?.values || {})
+        : existingValues;
+      const currentValue = currentValues[categoryId] || 0;
+      handleValueChange(categoryId, Math.max(0, currentValue - area));
+    }
+  };
+
+  // Cancel drawing
+  const cancelDrawing = () => {
+    setDrawingCategoryId(null);
+  };
+
   return (
     <div className="app-container">
       <InputPanel
-        values={activeTab === 'project' ? activeProject.values : existingValues}
+        values={activeTab === 'project' ?
+          (projects.find(p => p.id === activeProjectId)?.values || {}) :
+          existingValues
+        }
         onChange={handleValueChange}
         totalSurface={totalSurface}
         setTotalSurface={setTotalSurface}
-        sdp={activeTab === 'project' ? activeProject.sdp : 0}
+        sdp={activeTab === 'project' ?
+          (projects.find(p => p.id === activeProjectId)?.sdp || 0) :
+          0
+        }
         setSdp={setSdpForProject}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -93,14 +134,38 @@ function App() {
         addProject={addProject}
         removeProject={removeProject}
         renameProject={renameProject}
+        rightPanelMode={rightPanelMode}
+        setRightPanelMode={setRightPanelMode}
+        startDrawing={startDrawing}
+        drawingCategoryId={drawingCategoryId}
       />
-      <VisualPanel
-        projects={projects}
-        existingValues={existingValues}
-        totalSurface={totalSurface}
-        activeTab={activeTab}
-        activeProjectId={activeProjectId}
-      />
+
+      <div className="right-panel-container">
+        {rightPanelMode === 'bars' ? (
+          <VisualPanel
+            projects={projects}
+            existingValues={existingValues}
+            totalSurface={totalSurface}
+            activeTab={activeTab}
+            activeProjectId={activeProjectId}
+          />
+        ) : (
+          <MapPanel
+            drawingCategoryId={drawingCategoryId}
+            onDrawingComplete={handleDrawingComplete}
+            onDeletePolygon={handleDeletePolygon}
+            cancelDrawing={cancelDrawing}
+            drawnPolygons={drawnPolygons}
+            setDrawnPolygons={setDrawnPolygons}
+            mapCenter={mapCenter}
+            setMapCenter={setMapCenter}
+            mapZoom={mapZoom}
+            setMapZoom={setMapZoom}
+            activeTab={activeTab}
+            activeProjectId={activeProjectId}
+          />
+        )}
+      </div>
     </div>
   );
 }
