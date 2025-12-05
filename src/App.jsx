@@ -23,6 +23,9 @@ function App() {
   const [mapCenter, setMapCenter] = useState([46.603354, 1.888334]);
   const [mapZoom, setMapZoom] = useState(6);
 
+  // Plan overlay state (per context)
+  const [planOverlay, setPlanOverlay] = useState({});
+
   const addProject = () => {
     if (projects.length >= 4) return;
     const newProject = {
@@ -163,6 +166,8 @@ function App() {
             setMapZoom={setMapZoom}
             activeTab={activeTab}
             activeProjectId={activeProjectId}
+            planOverlay={planOverlay}
+            setPlanOverlay={setPlanOverlay}
           />
         )}
       </div>

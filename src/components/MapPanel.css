@@ -18,12 +18,14 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     position: relative;
+    flex-wrap: wrap;
 }
 
 .search-input-wrapper {
     display: flex;
     align-items: center;
     flex: 1;
+    min-width: 120px;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -120,6 +122,122 @@
     border-radius: 4px;
     border: 1px solid rgba(99, 102, 241, 0.3);
     font-weight: 600;
+}
+
+/* Plan button */
+.plan-btn {
+    padding: 6px 10px;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 6px;
+    color: #86efac;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plan-btn:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.25);
+}
+
+.plan-btn.active {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: #22c55e;
+}
+
+.plan-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Overlay Controls Bar */
+.overlay-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: linear-gradient(to right, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1));
+    border-bottom: 2px solid #22c55e;
+    flex-wrap: wrap;
+}
+
+.overlay-controls .control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.overlay-controls label {
+    font-size: 0.7rem;
+    color: #a7f3d0;
+    font-weight: 600;
+}
+
+.overlay-controls input[type="range"] {
+    width: 70px;
+    height: 4px;
+    accent-color: #22c55e;
+}
+
+.overlay-controls span {
+    font-size: 0.7rem;
+    color: #6ee7b7;
+    min-width: 30px;
+}
+
+.overlay-controls button {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+
+.overlay-controls .control-group button {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+}
+
+.overlay-controls .control-group button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.delete-overlay-btn {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+    margin-left: auto;
+}
+
+.delete-overlay-btn:hover {
+    background: rgba(239, 68, 68, 0.3) !important;
+}
+
+.done-overlay-btn {
+    background: rgba(34, 197, 94, 0.3) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    color: #86efac !important;
+}
+
+.done-overlay-btn:hover {
+    background: rgba(34, 197, 94, 0.4) !important;
+}
+
+/* Plan Overlay on map */
+.plan-overlay {
+    pointer-events: none;
+}
+
+.plan-overlay.editing {
+    pointer-events: auto;
+    cursor: move;
+    outline: 3px dashed #22c55e;
+    outline-offset: -3px;
 }
 
 /* Search results */
