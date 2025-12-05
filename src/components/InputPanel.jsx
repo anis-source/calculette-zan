@@ -30,7 +30,7 @@ const InputPanel = ({
 
     const handleRename = (id) => {
         const project = projects.find(p => p.id === id);
-        const newName = prompt('Nouveau nom du projet:', project.name);
+        const newName = prompt('Nouveau nom:', project.name);
         if (newName && newName.trim()) {
             renameProject(id, newName.trim());
         }
@@ -43,7 +43,31 @@ const InputPanel = ({
         }
     };
 
-    // Render measure button for a category
+    // Short labels for compact display
+    const shortLabels = {
+        'S_Toit_Beton': 'Toit béton',
+        'S_Toit_Veg_Inf10': 'Toit vég. <10cm',
+        'S_Toit_Veg_10_30': 'Toit vég. 10-30',
+        'S_Toit_Veg_Sup30': 'Toit vég. >30cm',
+        'S_Facade': 'Façade vég.',
+        'S_Dalle_Beton': 'Dalle béton',
+        'S_Dalle_Jardin_Inf20': 'Jardin/<20cm',
+        'S_Dalle_Jardin_20_80': 'Jardin/20-80',
+        'S_Dalle_Jardin_Sup80': 'Jardin/>80cm',
+        'S_Sol_Impermeable': 'Sol imperméable',
+        'S_Sol_Infiltrant': 'Sol infiltrant',
+        'S_Pleine_Terre': 'Pleine terre',
+        'S_Zone_Arboree': 'Zone arborée',
+        'Nb_Arbres': 'Nb arbres',
+        'S_Terre_Polluee_Arboree': 'Terre poll. arb.',
+        'S_Terre_Polluee_PetiteVeg': 'Terre poll. vég.',
+        'S_Eau_Etanche': 'Eau étanche',
+        'S_Eau_Naturelle': 'Eau naturelle'
+    };
+
+    const getLabel = (item) => shortLabels[item.id] || item.label;
+
+    // Measure button
     const MeasureButton = ({ categoryId, color }) => {
         if (!isMapMode) return null;
         const isActive = drawingCategoryId === categoryId;
@@ -51,7 +75,7 @@ const InputPanel = ({
             <button
                 className={`measure-btn ${isActive ? 'active' : ''}`}
                 onClick={() => startDrawing(categoryId)}
-                title="Mesurer sur la carte"
+                title="Mesurer sur carte"
                 style={{ borderColor: color }}
             >
                 📐
@@ -61,9 +85,10 @@ const InputPanel = ({
 
     return (
         <div className="input-panel panel">
-            <header>
-                <h1>Calculette ZAN</h1>
-                <p>Simulateur d'Artificialisation Nette</p>
+            {/* Compact Header */}
+            <header className="compact-header">
+                <h1>⚡ ZAN</h1>
+                <span className="subtitle">Artificialisation Nette</span>
             </header>
 
             {/* View mode switch */}
@@ -87,19 +112,18 @@ const InputPanel = ({
                     className={`tab-btn ${activeTab === 'existing' ? 'active' : ''}`}
                     onClick={() => setActiveTab('existing')}
                 >
-                    État Existant
+                    Existant
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'project' ? 'active' : ''}`}
                     onClick={() => setActiveTab('project')}
                 >
-                    État Projet
+                    Projet
                 </button>
             </div>
 
             {activeTab === 'project' && (
-                <section className="project-management">
-                    <h2>Gestion des Projets</h2>
+                <section className="project-management compact">
                     <div className="project-list">
                         {projects.map(project => (
                             <div
@@ -112,38 +136,25 @@ const InputPanel = ({
                                 >
                                     {project.name}
                                 </button>
-                                <button
-                                    className="project-action-btn rename"
-                                    onClick={() => handleRename(project.id)}
-                                    title="Renommer"
-                                >
-                                    ✏️
-                                </button>
+                                <button className="project-action-btn" onClick={() => handleRename(project.id)} title="Renommer">✏️</button>
                                 {projects.length > 1 && (
-                                    <button
-                                        className="project-action-btn delete"
-                                        onClick={() => handleRemoveProject(project.id)}
-                                        title="Supprimer"
-                                    >
-                                        🗑️
-                                    </button>
+                                    <button className="project-action-btn delete" onClick={() => handleRemoveProject(project.id)} title="Supprimer">🗑️</button>
                                 )}
                             </div>
                         ))}
+                        {projects.length < 4 && (
+                            <button className="add-project-btn-inline" onClick={addProject}>+</button>
+                        )}
                     </div>
-                    {projects.length < 4 && (
-                        <button className="add-project-btn" onClick={addProject}>
-                            + Nouveau Projet
-                        </button>
-                    )}
                 </section>
             )}
 
             <div className="scroll-content">
-                <section className="input-group">
-                    <h2>1. Informations Projet</h2>
-                    <div className="input-row has-measure">
-                        <label>Surface Totale du Foncier (m²)</label>
+                {/* Surface totale */}
+                <section className="input-group compact">
+                    <h2>📐 Foncier</h2>
+                    <div className="input-row">
+                        <label>Surface totale (m²)</label>
                         <div className="input-with-measure">
                             <input
                                 type="number"
@@ -156,7 +167,7 @@ const InputPanel = ({
                     </div>
                     {activeTab === 'project' && (
                         <div className="input-row">
-                            <label>Surface de Plancher (SDP) (m²)</label>
+                            <label>SDP (m²)</label>
                             <input
                                 type="number"
                                 value={sdp || ''}
@@ -167,14 +178,32 @@ const InputPanel = ({
                     )}
                 </section>
 
+                {/* Légende des couleurs */}
+                {isMapMode && (
+                    <section className="color-legend">
+                        <h2>🎨 Légende</h2>
+                        <div className="legend-grid">
+                            {Object.entries(coefficients).map(([key, zone]) => (
+                                zone.items.filter(item => !item.isVertical && !item.isCount).slice(0, 3).map(item => (
+                                    <div key={item.id} className="legend-item">
+                                        <span className="legend-color" style={{ background: surfaceColors[item.id] }}></span>
+                                        <span className="legend-label">{getLabel(item)}</span>
+                                    </div>
+                                ))
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {Object.entries(coefficients).map(([key, zone]) => (
-                    <section key={key} className="input-group">
-                        <h2>{zone.title}</h2>
+                    <section key={key} className="input-group compact">
+                        <h2>{zone.title.split(' - ')[0]} - {zone.title.split(' - ')[1]?.substring(0, 12) || ''}</h2>
                         {zone.items.map(item => (
-                            <div key={item.id} className={`input-row ${isMapMode && !item.isVertical && !item.isCount ? 'has-measure' : ''}`}>
-                                <label>
-                                    {item.label}
-                                    <span className="coeff-badge">x{item.coeff}</span>
+                            <div key={item.id} className="input-row">
+                                <label title={item.label}>
+                                    <span className="color-dot" style={{ background: surfaceColors[item.id] }}></span>
+                                    {getLabel(item)}
+                                    <span className="coeff-badge">×{item.coeff}</span>
                                 </label>
                                 <div className="input-with-measure">
                                     <input
