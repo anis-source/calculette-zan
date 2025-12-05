@@ -436,11 +436,17 @@ body {
 .project-action-btn {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
-  padding: 6px 10px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .project-action-btn:hover {

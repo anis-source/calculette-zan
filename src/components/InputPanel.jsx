@@ -178,23 +178,6 @@ const InputPanel = ({
                     )}
                 </section>
 
-                {/* Légende des couleurs */}
-                {isMapMode && (
-                    <section className="color-legend">
-                        <h2>🎨 Légende</h2>
-                        <div className="legend-grid">
-                            {Object.entries(coefficients).map(([key, zone]) => (
-                                zone.items.filter(item => !item.isVertical && !item.isCount).slice(0, 3).map(item => (
-                                    <div key={item.id} className="legend-item">
-                                        <span className="legend-color" style={{ background: surfaceColors[item.id] }}></span>
-                                        <span className="legend-label">{getLabel(item)}</span>
-                                    </div>
-                                ))
-                            ))}
-                        </div>
-                    </section>
-                )}
-
                 {Object.entries(coefficients).map(([key, zone]) => (
                     <section key={key} className="input-group compact">
                         <h2>{zone.title.split(' - ')[0]} - {zone.title.split(' - ')[1]?.substring(0, 12) || ''}</h2>

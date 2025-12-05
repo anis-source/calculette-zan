@@ -10,7 +10,6 @@
     border-radius: var(--radius-lg);
 }
 
-/* Compact toolbar */
 .map-toolbar {
     display: flex;
     align-items: center;
@@ -79,7 +78,6 @@
     opacity: 0.5;
 }
 
-/* Layer toggle */
 .layer-toggle {
     display: flex;
     align-items: center;
@@ -113,7 +111,6 @@
     margin: 0;
 }
 
-/* Context badge */
 .context-badge {
     font-size: 0.7rem;
     background: rgba(99, 102, 241, 0.2);
@@ -124,7 +121,6 @@
     font-weight: 600;
 }
 
-/* Plan button */
 .plan-btn {
     padding: 6px 10px;
     background: rgba(34, 197, 94, 0.15);
@@ -150,7 +146,6 @@
     cursor: not-allowed;
 }
 
-/* Overlay Controls Bar */
 .overlay-controls {
     display: flex;
     align-items: center;
@@ -207,6 +202,27 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
+.control-number {
+    width: 60px;
+    padding: 2px 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.control-number:focus {
+    outline: none;
+    border-color: #22c55e;
+}
+
+.control-number::-webkit-inner-spin-button,
+.control-number::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
 .delete-overlay-btn {
     background: rgba(239, 68, 68, 0.2) !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
@@ -228,19 +244,51 @@
     background: rgba(34, 197, 94, 0.4) !important;
 }
 
-/* Plan Overlay on map */
-.plan-overlay {
+.custom-image-overlay {
+    position: absolute;
     pointer-events: none;
+    z-index: 400;
+    transform-origin: center center;
+    box-sizing: border-box;
 }
 
-.plan-overlay.editing {
+.custom-image-overlay.editing {
     pointer-events: auto;
     cursor: move;
     outline: 3px dashed #22c55e;
     outline-offset: -3px;
 }
 
-/* Search results */
+.custom-image-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.edit-hint {
+    font-size: 0.7rem;
+    color: #6ee7b7;
+    font-style: italic;
+}
+
+.overlay-mode {
+    border: 3px solid #22c55e !important;
+    border-top: none;
+}
+
+/* Force polygons to appear above the custom image overlay */
+.leaflet-pane.leaflet-overlay-pane {
+    z-index: 1500 !important;
+}
+
+/* Make sure the image overlay stays above map tiles */
+.custom-image-overlay {
+    z-index: 1000 !important;
+}
+
 .search-results {
     position: absolute;
     top: 100%;
@@ -299,7 +347,6 @@
     margin-top: 1px;
 }
 
-/* Drawing control bar */
 .drawing-bar {
     display: flex;
     align-items: center;
@@ -387,7 +434,6 @@
     background: rgba(239, 68, 68, 0.3);
 }
 
-/* Polygon list bar */
 .polygon-list-bar {
     display: flex;
     flex-wrap: wrap;
@@ -449,7 +495,6 @@
     background: rgba(239, 68, 68, 0.5);
 }
 
-/* Map container */
 .map-container-wrapper {
     flex: 1;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -471,7 +516,6 @@
     background: #1e293b;
 }
 
-/* Light theme */
 body.light-theme .search-input-wrapper,
 body.light-theme .layer-toggle {
     background: rgba(0, 0, 0, 0.03);

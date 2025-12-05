@@ -1,10 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, WMSTileLayer, useMap, FeatureGroup, Polygon, ImageOverlay } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, WMSTileLayer, useMap, FeatureGroup, Polygon } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './MapPanel.css';
 import { surfaceColors } from '../data/coefficients';
 import * as turf from '@turf/helpers';
 import area from '@turf/area';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Set PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 // Fix for default marker icon
 import L from 'leaflet';
@@ -79,119 +84,21 @@ const MapFreezer = ({ frozen }) => {
             map.keyboard.enable();
             map.doubleClickZoom.enable();
         }
-
-        return () => {
-            map.dragging.enable();
-            map.touchZoom.enable();
-            map.scrollWheelZoom.enable();
-            map.boxZoom.enable();
-            map.keyboard.enable();
-            map.doubleClickZoom.enable();
-        };
     }, [frozen, map]);
 
     return null;
 };
 
-// Rotatable Image Overlay Component
-const RotatableOverlay = ({ imageUrl, bounds, rotation, opacity, isEditing, onBoundsChange }) => {
+// Custom pane for polygons with high z-index (above image overlay)
+const PolygonPaneCreator = () => {
     const map = useMap();
-    const overlayRef = useRef(null);
-    const isDragging = useRef(false);
-    const dragStart = useRef(null);
 
     useEffect(() => {
-        if (!imageUrl || !bounds) return;
-
-        // Create custom rotated image overlay
-        const overlay = L.imageOverlay(imageUrl, bounds, {
-            opacity: opacity,
-            interactive: isEditing,
-            className: `plan-overlay ${isEditing ? 'editing' : ''}`
-        });
-
-        overlay.addTo(map);
-        overlayRef.current = overlay;
-
-        // Apply rotation via CSS
-        const element = overlay.getElement();
-        if (element) {
-            element.style.transformOrigin = 'center center';
-            element.style.transform = `rotate(${rotation}deg)`;
+        if (!map.getPane('polygonsPane')) {
+            map.createPane('polygonsPane');
+            map.getPane('polygonsPane').style.zIndex = 2000;
         }
-
-        // Handle drag if editing
-        if (isEditing && element) {
-            element.style.cursor = 'move';
-
-            const onMouseDown = (e) => {
-                isDragging.current = true;
-                dragStart.current = { x: e.clientX, y: e.clientY, bounds: [...bounds] };
-                e.preventDefault();
-            };
-
-            const onMouseMove = (e) => {
-                if (!isDragging.current || !dragStart.current) return;
-
-                const dx = e.clientX - dragStart.current.x;
-                const dy = e.clientY - dragStart.current.y;
-
-                // Convert pixel delta to lat/lng delta
-                const zoom = map.getZoom();
-                const scale = 0.00001 * Math.pow(2, 18 - zoom);
-                const latDelta = -dy * scale;
-                const lngDelta = dx * scale;
-
-                const newBounds = [
-                    [dragStart.current.bounds[0][0] + latDelta, dragStart.current.bounds[0][1] + lngDelta],
-                    [dragStart.current.bounds[1][0] + latDelta, dragStart.current.bounds[1][1] + lngDelta]
-                ];
-
-                overlay.setBounds(newBounds);
-            };
-
-            const onMouseUp = () => {
-                if (isDragging.current && overlayRef.current) {
-                    const newBounds = overlayRef.current.getBounds();
-                    onBoundsChange([[newBounds.getSouth(), newBounds.getWest()], [newBounds.getNorth(), newBounds.getEast()]]);
-                }
-                isDragging.current = false;
-                dragStart.current = null;
-            };
-
-            element.addEventListener('mousedown', onMouseDown);
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-
-            return () => {
-                element.removeEventListener('mousedown', onMouseDown);
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-                map.removeLayer(overlay);
-            };
-        }
-
-        return () => {
-            map.removeLayer(overlay);
-        };
-    }, [imageUrl, bounds, rotation, opacity, isEditing, map, onBoundsChange]);
-
-    // Update rotation when it changes
-    useEffect(() => {
-        if (overlayRef.current) {
-            const element = overlayRef.current.getElement();
-            if (element) {
-                element.style.transform = `rotate(${rotation}deg)`;
-            }
-        }
-    }, [rotation]);
-
-    // Update opacity when it changes
-    useEffect(() => {
-        if (overlayRef.current) {
-            overlayRef.current.setOpacity(opacity);
-        }
-    }, [opacity]);
+    }, [map]);
 
     return null;
 };
@@ -289,6 +196,164 @@ const DrawingHandler = ({ isDrawing, drawingColor, points, setPoints }) => {
     return null;
 };
 
+// Custom Image Overlay Component
+const CustomImageOverlay = ({
+    imageUrl,
+    center,
+    scale,
+    rotation,
+    opacity,
+    isEditing,
+    onCenterChange
+}) => {
+    const map = useMap();
+    const containerRef = useRef(null);
+    const imageRef = useRef(null);
+    const isDragging = useRef(false);
+    const lastMousePos = useRef(null);
+
+    const updatePosition = useCallback(() => {
+        if (!containerRef.current || !center) return;
+
+        const pixelCenter = map.latLngToLayerPoint(center);
+        const zoom = map.getZoom();
+        const basePixelsPerDegree = 7000;
+        const zoomFactor = Math.pow(2, zoom - 18);
+        const pixelSize = scale * basePixelsPerDegree * zoomFactor;
+
+        containerRef.current.style.left = `${pixelCenter.x}px`;
+        containerRef.current.style.top = `${pixelCenter.y}px`;
+        containerRef.current.style.width = `${pixelSize}px`;
+        containerRef.current.style.height = `${pixelSize}px`;
+        containerRef.current.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+        containerRef.current.style.opacity = opacity;
+    }, [map, center, scale, rotation, opacity]);
+
+    useEffect(() => {
+        updatePosition();
+        map.on('move', updatePosition);
+        map.on('zoom', updatePosition);
+        map.on('moveend', updatePosition);
+        map.on('zoomend', updatePosition);
+
+        return () => {
+            map.off('move', updatePosition);
+            map.off('zoom', updatePosition);
+            map.off('moveend', updatePosition);
+            map.off('zoomend', updatePosition);
+        };
+    }, [map, updatePosition]);
+
+    useEffect(() => {
+        if (!isEditing || !containerRef.current) return;
+
+        const container = containerRef.current;
+
+        const handleMouseDown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isDragging.current = true;
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+            map.dragging.disable();
+        };
+
+        const handleMouseMove = (e) => {
+            if (!isDragging.current || !lastMousePos.current) return;
+
+            const deltaX = e.clientX - lastMousePos.current.x;
+            const deltaY = e.clientY - lastMousePos.current.y;
+
+            const currentPoint = map.latLngToLayerPoint(center);
+            const newPoint = L.point(currentPoint.x + deltaX, currentPoint.y + deltaY);
+            const newCenter = map.layerPointToLatLng(newPoint);
+
+            onCenterChange([newCenter.lat, newCenter.lng]);
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+        };
+
+        const handleMouseUp = () => {
+            isDragging.current = false;
+            lastMousePos.current = null;
+        };
+
+        container.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            container.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isEditing, center, onCenterChange, map]);
+
+    const mapPane = map.getPane('mapPane');
+
+    useEffect(() => {
+        if (!mapPane) return;
+
+        const container = document.createElement('div');
+        container.className = 'custom-image-overlay';
+        container.style.cssText = `
+            position: absolute;
+            pointer-events: none;
+            cursor: default;
+            z-index: 500;
+            transform-origin: center center;
+        `;
+
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        `;
+
+        container.appendChild(img);
+        mapPane.appendChild(container);
+
+        containerRef.current = container;
+        imageRef.current = img;
+
+        return () => {
+            if (container.parentNode) {
+                container.parentNode.removeChild(container);
+            }
+        };
+    }, [mapPane, imageUrl]);
+
+    useEffect(() => {
+        if (!containerRef.current || !center) return;
+
+        const pixelCenter = map.latLngToLayerPoint(center);
+        const zoom = map.getZoom();
+        const basePixelsPerDegree = 7000;
+        const zoomFactor = Math.pow(2, zoom - 18);
+        const pixelSize = scale * basePixelsPerDegree * zoomFactor;
+
+        containerRef.current.style.left = `${pixelCenter.x}px`;
+        containerRef.current.style.top = `${pixelCenter.y}px`;
+        containerRef.current.style.width = `${pixelSize}px`;
+        containerRef.current.style.height = `${pixelSize}px`;
+        containerRef.current.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+        containerRef.current.style.opacity = opacity;
+    }, [map, center, scale, rotation, opacity]);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            containerRef.current.className = `custom-image-overlay ${isEditing ? 'editing' : ''}`;
+            containerRef.current.style.pointerEvents = isEditing ? 'auto' : 'none';
+            containerRef.current.style.cursor = isEditing ? 'move' : 'default';
+        }
+    }, [isEditing]);
+
+    return null;
+};
+
 const MapPanel = ({
     drawingCategoryId,
     onDrawingComplete,
@@ -324,62 +389,74 @@ const MapPanel = ({
     const canFinish = drawingPoints.length >= 3;
     const drawingColor = drawingCategoryId ? getCategoryColor(drawingCategoryId) : '#6366f1';
 
-    // Current context for filtering
+    // Current context for filtering polygons (per-context)
     const currentContext = activeTab === 'existing' ? 'existing' : `project-${activeProjectId}`;
     const filteredPolygons = useMemo(() => drawnPolygons.filter(p => p.context === currentContext), [drawnPolygons, currentContext]);
     const contextLabel = activeTab === 'existing' ? 'Existant' : `Projet ${activeProjectId}`;
 
-    // Current overlay for this context
-    const currentOverlay = planOverlay?.[currentContext] || null;
+    // Global overlay (shared across all contexts)
+    const currentOverlay = planOverlay;
 
-    // Handle file import
-    const handleFileImport = (e) => {
+    // Handle file import (images and PDFs)
+    const handleFileImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const imageUrl = event.target.result;
+        const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-            // Create default bounds around current map center
-            const center = mapCenter;
-            const offset = 0.002; // ~200m
-            const defaultBounds = [
-                [center[0] - offset, center[1] - offset],
-                [center[0] + offset, center[1] + offset]
-            ];
+        if (isPDF) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                const scale = 2;
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const imageUrl = canvas.toDataURL('image/png');
 
-            setPlanOverlay(prev => ({
-                ...prev,
-                [currentContext]: {
+                setPlanOverlay({
                     imageUrl,
-                    bounds: defaultBounds,
+                    center: [...mapCenter],
+                    scale: 0.02,
                     rotation: 0,
                     opacity: 0.7
-                }
-            }));
-            setIsEditingOverlay(true);
-        };
-        reader.readAsDataURL(file);
+                });
+                setIsEditingOverlay(true);
+            } catch (err) {
+                console.error('Error loading PDF:', err);
+                alert('Erreur lors du chargement du PDF');
+            }
+        } else {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const imageUrl = event.target.result;
+                setPlanOverlay({
+                    imageUrl,
+                    center: [...mapCenter],
+                    scale: 0.02,
+                    rotation: 0,
+                    opacity: 0.7
+                });
+                setIsEditingOverlay(true);
+            };
+            reader.readAsDataURL(file);
+        }
         e.target.value = '';
     };
 
     // Update overlay property
-    const updateOverlay = (key, value) => {
+    const updateOverlay = useCallback((key, value) => {
         if (!currentOverlay) return;
-        setPlanOverlay(prev => ({
-            ...prev,
-            [currentContext]: { ...prev[currentContext], [key]: value }
-        }));
-    };
+        setPlanOverlay(prev => ({ ...prev, [key]: value }));
+    }, [currentOverlay, setPlanOverlay]);
 
     // Delete overlay
     const deleteOverlay = () => {
-        setPlanOverlay(prev => {
-            const next = { ...prev };
-            delete next[currentContext];
-            return next;
-        });
+        setPlanOverlay(null);
         setIsEditingOverlay(false);
     };
 
@@ -450,6 +527,9 @@ const MapPanel = ({
         } catch { return 0; }
     })() : 0;
 
+    // Scale percentage for display
+    const scalePercent = currentOverlay ? Math.round((currentOverlay.scale / 0.02) * 100) : 100;
+
     return (
         <div className="map-panel panel">
             {/* Toolbar */}
@@ -462,7 +542,7 @@ const MapPanel = ({
                         placeholder="Rechercher..."
                         value={searchQuery}
                         onChange={handleSearchChange}
-                        disabled={isDrawing}
+                        disabled={isDrawing || isEditingOverlay}
                     />
                     {isSearching && <span className="search-spinner">⏳</span>}
                 </div>
@@ -480,9 +560,9 @@ const MapPanel = ({
                 )}
 
                 {/* Plan Masse button */}
-                <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileImport} style={{ display: 'none' }} />
+                <input type="file" ref={fileInputRef} accept="image/*,.pdf,application/pdf" onChange={handleFileImport} style={{ display: 'none' }} />
                 {!currentOverlay ? (
-                    <button className="plan-btn" onClick={() => fileInputRef.current?.click()} disabled={isDrawing} title="Importer plan masse">
+                    <button className="plan-btn" onClick={() => fileInputRef.current?.click()} disabled={isDrawing} title="Importer plan masse (image ou PDF)">
                         📁 Plan
                     </button>
                 ) : (
@@ -511,16 +591,27 @@ const MapPanel = ({
             {/* Overlay Controls */}
             {currentOverlay && isEditingOverlay && !isDrawing && (
                 <div className="overlay-controls">
+                    <span className="edit-hint">⬌ Glissez l'image</span>
                     <div className="control-group">
                         <label>Opacité</label>
                         <input
                             type="range"
-                            min="0"
+                            min="10"
                             max="100"
-                            value={currentOverlay.opacity * 100}
-                            onChange={(e) => updateOverlay('opacity', e.target.value / 100)}
+                            step="1"
+                            value={Math.round(currentOverlay.opacity * 100)}
+                            onChange={(e) => updateOverlay('opacity', parseInt(e.target.value) / 100)}
                         />
-                        <span>{Math.round(currentOverlay.opacity * 100)}%</span>
+                        <input
+                            type="number"
+                            min="10"
+                            max="100"
+                            step="1"
+                            value={Math.round(currentOverlay.opacity * 100)}
+                            onChange={(e) => updateOverlay('opacity', Math.min(100, Math.max(10, parseInt(e.target.value) || 10)) / 100)}
+                            className="control-number"
+                        />
+                        <span>%</span>
                     </div>
                     <div className="control-group">
                         <label>Rotation</label>
@@ -528,29 +619,41 @@ const MapPanel = ({
                             type="range"
                             min="-180"
                             max="180"
+                            step="1"
                             value={currentOverlay.rotation}
-                            onChange={(e) => updateOverlay('rotation', parseInt(e.target.value))}
+                            onChange={(e) => updateOverlay('rotation', parseFloat(e.target.value))}
                         />
-                        <span>{currentOverlay.rotation}°</span>
+                        <input
+                            type="number"
+                            min="-180"
+                            max="180"
+                            step="1"
+                            value={currentOverlay.rotation}
+                            onChange={(e) => updateOverlay('rotation', Math.min(180, Math.max(-180, parseFloat(e.target.value) || 0)))}
+                            className="control-number"
+                        />
+                        <span>°</span>
                     </div>
                     <div className="control-group">
                         <label>Échelle</label>
-                        <button onClick={() => {
-                            const b = currentOverlay.bounds;
-                            const centerLat = (b[0][0] + b[1][0]) / 2;
-                            const centerLng = (b[0][1] + b[1][1]) / 2;
-                            const h = (b[1][0] - b[0][0]) * 0.9;
-                            const w = (b[1][1] - b[0][1]) * 0.9;
-                            updateOverlay('bounds', [[centerLat - h / 2, centerLng - w / 2], [centerLat + h / 2, centerLng + w / 2]]);
-                        }}>−</button>
-                        <button onClick={() => {
-                            const b = currentOverlay.bounds;
-                            const centerLat = (b[0][0] + b[1][0]) / 2;
-                            const centerLng = (b[0][1] + b[1][1]) / 2;
-                            const h = (b[1][0] - b[0][0]) * 1.1;
-                            const w = (b[1][1] - b[0][1]) * 1.1;
-                            updateOverlay('bounds', [[centerLat - h / 2, centerLng - w / 2], [centerLat + h / 2, centerLng + w / 2]]);
-                        }}>+</button>
+                        <input
+                            type="range"
+                            min="10"
+                            max="500"
+                            step="1"
+                            value={scalePercent}
+                            onChange={(e) => updateOverlay('scale', (parseInt(e.target.value) / 100) * 0.02)}
+                        />
+                        <input
+                            type="number"
+                            min="10"
+                            max="500"
+                            step="1"
+                            value={scalePercent}
+                            onChange={(e) => updateOverlay('scale', (Math.min(500, Math.max(10, parseInt(e.target.value) || 100)) / 100) * 0.02)}
+                            className="control-number"
+                        />
+                        <span>%</span>
                     </div>
                     <button className="delete-overlay-btn" onClick={deleteOverlay}>🗑️</button>
                     <button className="done-overlay-btn" onClick={() => setIsEditingOverlay(false)}>✓ OK</button>
@@ -589,35 +692,38 @@ const MapPanel = ({
             )}
 
             {/* Map */}
-            <div className={`map-container-wrapper ${isDrawing ? 'drawing-mode' : ''}`} style={isDrawing ? { borderColor: drawingColor } : {}}>
-                <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={true} maxZoom={21} style={{ height: '100%', width: '100%' }}>
+            <div className={`map-container-wrapper ${isDrawing ? 'drawing-mode' : ''} ${isEditingOverlay ? 'overlay-mode' : ''}`} style={isDrawing ? { borderColor: drawingColor } : {}}>
+                <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={!isEditingOverlay} maxZoom={21} style={{ height: '100%', width: '100%' }}>
                     <TileLayer attribution='&copy; OSM' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={21} />
                     {showCadastre && (
                         <WMSTileLayer url="https://data.geopf.fr/wms-r/wms" layers="CADASTRALPARCELS.PARCELLAIRE_EXPRESS"
                             format="image/png" transparent={true} opacity={0.7} version="1.3.0" />
                     )}
 
-                    {/* Plan Masse Overlay */}
+                    {/* Custom Image Overlay */}
                     {currentOverlay && (
-                        <RotatableOverlay
+                        <CustomImageOverlay
                             imageUrl={currentOverlay.imageUrl}
-                            bounds={currentOverlay.bounds}
+                            center={currentOverlay.center}
+                            scale={currentOverlay.scale}
                             rotation={currentOverlay.rotation}
                             opacity={currentOverlay.opacity}
                             isEditing={isEditingOverlay}
-                            onBoundsChange={(newBounds) => updateOverlay('bounds', newBounds)}
+                            onCenterChange={(newCenter) => updateOverlay('center', newCenter)}
                         />
                     )}
 
                     <FlyToLocation position={flyToPosition} zoom={18} flyToId={flyToId} />
                     <MapPositionTracker setMapCenter={setMapCenter} setMapZoom={setMapZoom} />
                     <MapFreezer frozen={isDrawing} />
+                    <PolygonPaneCreator />
                     {markerPosition && <Marker position={markerPosition}><Popup>{markerLabel}</Popup></Marker>}
                     <DrawingHandler isDrawing={isDrawing} drawingColor={drawingColor} points={drawingPoints} setPoints={setDrawingPoints} />
                     {showPolygons && (
                         <FeatureGroup>
                             {filteredPolygons.map(p => (
                                 <Polygon key={p.id} positions={p.coords}
+                                    pane="polygonsPane"
                                     pathOptions={{ color: p.color, fillColor: p.color, fillOpacity: selectedPolygonId === p.id ? 0.5 : 0.3, weight: selectedPolygonId === p.id ? 3 : 2 }}
                                     eventHandlers={{ click: () => setSelectedPolygonId(selectedPolygonId === p.id ? null : p.id) }}>
                                     <Popup>{p.area} m²</Popup>
