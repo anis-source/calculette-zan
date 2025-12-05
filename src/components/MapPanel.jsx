@@ -7,6 +7,7 @@ import * as turf from '@turf/helpers';
 import area from '@turf/area';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { Icons } from './Icons';
 
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -535,16 +536,16 @@ const MapPanel = ({
             {/* Toolbar */}
             <div className="map-toolbar">
                 <div className="search-input-wrapper">
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><Icons.Search size={14} /></span>
                     <input
                         type="text"
                         className="map-search-input"
-                        placeholder="Rechercher..."
+                        placeholder="Rechercher une adresse..."
                         value={searchQuery}
                         onChange={handleSearchChange}
                         disabled={isDrawing || isEditingOverlay}
                     />
-                    {isSearching && <span className="search-spinner">⏳</span>}
+                    {isSearching && <span className="search-spinner"><Icons.Layers size={14} /></span>}
                 </div>
 
                 <label className="layer-toggle">
@@ -563,11 +564,11 @@ const MapPanel = ({
                 <input type="file" ref={fileInputRef} accept="image/*,.pdf,application/pdf" onChange={handleFileImport} style={{ display: 'none' }} />
                 {!currentOverlay ? (
                     <button className="plan-btn" onClick={() => fileInputRef.current?.click()} disabled={isDrawing} title="Importer plan masse (image ou PDF)">
-                        📁 Plan
+                        <Icons.Upload size={14} /> Importer plan
                     </button>
                 ) : (
                     <button className={`plan-btn ${isEditingOverlay ? 'active' : ''}`} onClick={() => setIsEditingOverlay(!isEditingOverlay)} disabled={isDrawing}>
-                        🖼️ Plan
+                        <Icons.Image size={14} /> Plan
                     </button>
                 )}
 
@@ -577,7 +578,7 @@ const MapPanel = ({
                     <ul className="search-results">
                         {searchResults.map((result, index) => (
                             <li key={index} className="search-result-item" onClick={() => handleSelectResult(result)}>
-                                <span className="result-icon">📍</span>
+                                <span className="result-icon"><Icons.Map size={14} /></span>
                                 <div className="result-text">
                                     <span className="result-label">{result.properties.label}</span>
                                     <span className="result-context">{result.properties.context}</span>
@@ -591,7 +592,6 @@ const MapPanel = ({
             {/* Overlay Controls */}
             {currentOverlay && isEditingOverlay && !isDrawing && (
                 <div className="overlay-controls">
-                    <span className="edit-hint">⬌ Glissez l'image</span>
                     <div className="control-group">
                         <label>Opacité</label>
                         <input
@@ -655,8 +655,8 @@ const MapPanel = ({
                         />
                         <span>%</span>
                     </div>
-                    <button className="delete-overlay-btn" onClick={deleteOverlay}>🗑️</button>
-                    <button className="done-overlay-btn" onClick={() => setIsEditingOverlay(false)}>✓ OK</button>
+                    <button className="delete-overlay-btn" onClick={deleteOverlay}><Icons.Trash size={14} /></button>
+                    <button className="done-overlay-btn" onClick={() => setIsEditingOverlay(false)}><Icons.Check size={14} /> OK</button>
                 </div>
             )}
 
@@ -669,9 +669,9 @@ const MapPanel = ({
                         {liveArea > 0 && <span className="live-area">≈ {liveArea} m²</span>}
                     </div>
                     <div className="drawing-actions">
-                        <button className="undo-btn" onClick={undoLastPoint} disabled={drawingPoints.length === 0}>↩</button>
-                        <button className="finish-btn" onClick={finishDrawing} disabled={!canFinish}>✓ Valider</button>
-                        <button className="cancel-btn" onClick={handleCancel}>✕</button>
+                        <button className="undo-btn" onClick={undoLastPoint} disabled={drawingPoints.length === 0}><Icons.Undo size={14} /></button>
+                        <button className="finish-btn" onClick={finishDrawing} disabled={!canFinish}><Icons.Check size={14} /> Valider</button>
+                        <button className="cancel-btn" onClick={handleCancel}><Icons.X size={14} /></button>
                     </div>
                 </div>
             )}
@@ -693,11 +693,26 @@ const MapPanel = ({
 
             {/* Map */}
             <div className={`map-container-wrapper ${isDrawing ? 'drawing-mode' : ''} ${isEditingOverlay ? 'overlay-mode' : ''}`} style={isDrawing ? { borderColor: drawingColor } : {}}>
-                <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={!isEditingOverlay} maxZoom={21} style={{ height: '100%', width: '100%' }}>
+                {isDrawing && (
+                    <div className="drawing-indicator" style={{ borderColor: drawingColor, color: drawingColor }}>
+                        <Icons.Edit size={16} />
+                        <span>Mode tracé actif</span>
+                    </div>
+                )}
+                <MapContainer
+                    center={mapCenter}
+                    zoom={mapZoom}
+                    scrollWheelZoom={!isEditingOverlay}
+                    maxZoom={21}
+                    zoomSnap={0.1}
+                    zoomDelta={0.1}
+                    wheelPxPerZoomLevel={120}
+                    style={{ height: '100%', width: '100%' }}
+                >
                     <TileLayer attribution='&copy; OSM' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={21} />
                     {showCadastre && (
                         <WMSTileLayer url="https://data.geopf.fr/wms-r/wms" layers="CADASTRALPARCELS.PARCELLAIRE_EXPRESS"
-                            format="image/png" transparent={true} opacity={0.7} version="1.3.0" />
+                            format="image/png" transparent={true} opacity={0.7} version="1.3.0" maxZoom={21} />
                     )}
 
                     {/* Custom Image Overlay */}

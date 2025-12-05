@@ -1,5 +1,6 @@
 import React from 'react';
 import { coefficients, surfaceColors } from '../data/coefficients';
+import { Icons } from './Icons';
 
 const InputPanel = ({
     values,
@@ -25,7 +26,12 @@ const InputPanel = ({
     const isMapMode = rightPanelMode === 'map';
 
     const handleChange = (id, value) => {
-        onChange(id, parseFloat(value) || 0);
+        const num = parseFloat(value);
+        if (!isNaN(num) && num >= 0) {
+            onChange(id, num);
+        } else if (value === '') {
+            onChange(id, 0);
+        }
     };
 
     const handleRename = (id) => {
@@ -45,27 +51,41 @@ const InputPanel = ({
 
     // Short labels for compact display
     const shortLabels = {
-        'S_Toit_Beton': 'Toit béton',
-        'S_Toit_Veg_Inf10': 'Toit vég. <10cm',
-        'S_Toit_Veg_10_30': 'Toit vég. 10-30',
-        'S_Toit_Veg_Sup30': 'Toit vég. >30cm',
-        'S_Facade': 'Façade vég.',
+        'S_Toit_Beton': 'Toiture béton',
+        'S_Toit_Veg_Inf10': 'Toiture vég. <10cm',
+        'S_Toit_Veg_10_30': 'Toiture vég. 10-30cm',
+        'S_Toit_Veg_Sup30': 'Toiture vég. >30cm',
+        'S_Facade': 'Façade végétalisée',
         'S_Dalle_Beton': 'Dalle béton',
-        'S_Dalle_Jardin_Inf20': 'Jardin/<20cm',
-        'S_Dalle_Jardin_20_80': 'Jardin/20-80',
-        'S_Dalle_Jardin_Sup80': 'Jardin/>80cm',
+        'S_Dalle_Jardin_Inf20': 'Jardin dalle <20cm',
+        'S_Dalle_Jardin_20_80': 'Jardin dalle 20-80cm',
+        'S_Dalle_Jardin_Sup80': 'Jardin dalle >80cm',
         'S_Sol_Impermeable': 'Sol imperméable',
         'S_Sol_Infiltrant': 'Sol infiltrant',
         'S_Pleine_Terre': 'Pleine terre',
         'S_Zone_Arboree': 'Zone arborée',
-        'Nb_Arbres': 'Nb arbres',
-        'S_Terre_Polluee_Arboree': 'Terre poll. arb.',
-        'S_Terre_Polluee_PetiteVeg': 'Terre poll. vég.',
-        'S_Eau_Etanche': 'Eau étanche',
-        'S_Eau_Naturelle': 'Eau naturelle'
+        'Nb_Arbres': 'Nombre d\'arbres',
+        'S_Terre_Polluee_Arboree': 'Terre polluée arborée',
+        'S_Terre_Polluee_PetiteVeg': 'Terre polluée végétalisée',
+        'S_Eau_Etanche': 'Plan d\'eau étanche',
+        'S_Eau_Naturelle': 'Plan d\'eau naturel'
     };
 
     const getLabel = (item) => shortLabels[item.id] || item.label;
+
+    // Zone icons
+    const zoneIcons = {
+        zoneA: <Icons.Building size={14} />,
+        zoneB: <Icons.Grid size={14} />,
+        zoneC: <Icons.Tree size={14} />
+    };
+
+    // Zone short titles
+    const zoneTitles = {
+        zoneA: 'Zones bâties',
+        zoneB: 'Zones sur dalle',
+        zoneC: 'Extérieurs & pleine terre'
+    };
 
     // Measure button
     const MeasureButton = ({ categoryId, color }) => {
@@ -76,19 +96,22 @@ const InputPanel = ({
                 className={`measure-btn ${isActive ? 'active' : ''}`}
                 onClick={() => startDrawing(categoryId)}
                 title="Mesurer sur carte"
-                style={{ borderColor: color }}
+                style={{ borderColor: isActive ? color : undefined }}
             >
-                📐
+                <Icons.Measure size={14} />
             </button>
         );
     };
 
     return (
         <div className="input-panel panel">
-            {/* Compact Header */}
-            <header className="compact-header">
-                <h1>⚡ ZAN</h1>
-                <span className="subtitle">Artificialisation Nette</span>
+            {/* Header */}
+            <header className="app-header">
+                <img src="/assets/logo.png" alt="ZAN" className="header-logo" />
+                <div className="title-group">
+                    <span className="title">Calculette ZAN</span>
+                    <span className="subtitle">Zéro Artificialisation Nette</span>
+                </div>
             </header>
 
             {/* View mode switch */}
@@ -97,13 +120,15 @@ const InputPanel = ({
                     className={`mode-btn ${rightPanelMode === 'bars' ? 'active' : ''}`}
                     onClick={() => setRightPanelMode('bars')}
                 >
-                    📊 Barres
+                    <Icons.Chart size={16} />
+                    <span>Synthèse</span>
                 </button>
                 <button
                     className={`mode-btn ${rightPanelMode === 'map' ? 'active' : ''}`}
                     onClick={() => setRightPanelMode('map')}
                 >
-                    🗺️ Carte
+                    <Icons.Map size={16} />
+                    <span>Carte</span>
                 </button>
             </div>
 
@@ -136,14 +161,28 @@ const InputPanel = ({
                                 >
                                     {project.name}
                                 </button>
-                                <button className="project-action-btn" onClick={() => handleRename(project.id)} title="Renommer">✏️</button>
+                                <button
+                                    className="project-action-btn"
+                                    onClick={() => handleRename(project.id)}
+                                    title="Renommer"
+                                >
+                                    <Icons.Edit size={14} />
+                                </button>
                                 {projects.length > 1 && (
-                                    <button className="project-action-btn delete" onClick={() => handleRemoveProject(project.id)} title="Supprimer">🗑️</button>
+                                    <button
+                                        className="project-action-btn delete"
+                                        onClick={() => handleRemoveProject(project.id)}
+                                        title="Supprimer"
+                                    >
+                                        <Icons.Trash size={14} />
+                                    </button>
                                 )}
                             </div>
                         ))}
                         {projects.length < 4 && (
-                            <button className="add-project-btn-inline" onClick={addProject}>+</button>
+                            <button className="add-project-btn-inline" onClick={addProject} title="Ajouter un projet">
+                                <Icons.Plus size={16} />
+                            </button>
                         )}
                     </div>
                 </section>
@@ -152,7 +191,7 @@ const InputPanel = ({
             <div className="scroll-content">
                 {/* Surface totale */}
                 <section className="input-group compact">
-                    <h2>📐 Foncier</h2>
+                    <h2>Foncier</h2>
                     <div className="input-row">
                         <label>Surface totale (m²)</label>
                         <div className="input-with-measure">
@@ -160,9 +199,13 @@ const InputPanel = ({
                                 type="number"
                                 value={totalSurface || ''}
                                 placeholder="0"
-                                onChange={(e) => setTotalSurface(parseFloat(e.target.value) || 0)}
+                                min="0"
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setTotalSurface(!isNaN(val) && val >= 0 ? val : 0);
+                                }}
                             />
-                            <MeasureButton categoryId="TOTAL_SURFACE" color="#6366f1" />
+                            <MeasureButton categoryId="TOTAL_SURFACE" color="#1a5c3f" />
                         </div>
                     </div>
                     {activeTab === 'project' && (
@@ -172,7 +215,11 @@ const InputPanel = ({
                                 type="number"
                                 value={sdp || ''}
                                 placeholder="0"
-                                onChange={(e) => setSdp(parseFloat(e.target.value) || 0)}
+                                min="0"
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setSdp(!isNaN(val) && val >= 0 ? val : 0);
+                                }}
                             />
                         </div>
                     )}
@@ -180,12 +227,15 @@ const InputPanel = ({
 
                 {Object.entries(coefficients).map(([key, zone]) => (
                     <section key={key} className="input-group compact">
-                        <h2>{zone.title.split(' - ')[0]} - {zone.title.split(' - ')[1]?.substring(0, 12) || ''}</h2>
+                        <h2>
+                            {zoneIcons[key]}
+                            {zoneTitles[key]}
+                        </h2>
                         {zone.items.map(item => (
                             <div key={item.id} className="input-row">
                                 <label title={item.label}>
                                     <span className="color-dot" style={{ background: surfaceColors[item.id] }}></span>
-                                    {getLabel(item)}
+                                    <span className="label-text" title={getLabel(item)}>{getLabel(item)}</span>
                                     <span className="coeff-badge">×{item.coeff}</span>
                                 </label>
                                 <div className="input-with-measure">
@@ -193,6 +243,7 @@ const InputPanel = ({
                                         type="number"
                                         value={values[item.id] || ''}
                                         placeholder="0"
+                                        min="0"
                                         onChange={(e) => handleChange(item.id, e.target.value)}
                                     />
                                     {!item.isVertical && !item.isCount && (

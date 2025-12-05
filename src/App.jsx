@@ -18,12 +18,12 @@ function App() {
   // Drawing state
   const [drawingCategoryId, setDrawingCategoryId] = useState(null);
 
-  // Map persistent state (survives panel switching)
+  // Map persistent state
   const [drawnPolygons, setDrawnPolygons] = useState([]);
   const [mapCenter, setMapCenter] = useState([46.603354, 1.888334]);
   const [mapZoom, setMapZoom] = useState(6);
 
-  // Plan overlay state (global - shared across all contexts)
+  // Plan overlay state (global)
   const [planOverlay, setPlanOverlay] = useState(null);
 
   const addProject = () => {

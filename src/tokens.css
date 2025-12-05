@@ -1,0 +1,105 @@
+/* ============================================
+   CALCULETTE ZAN - Design Tokens
+   Light theme - Organic green/white with dark contrast
+   ============================================ */
+
+:root {
+    /* ─────────────────────────────────────────
+     PRIMARY - Vert organique du logo
+     ───────────────────────────────────────── */
+    --primary: #2e5c45;
+    /* Darker organic green */
+    --primary-light: #447a60;
+    /* Lighter leaf green */
+    --primary-dark: #1e3d2f;
+    /* Deep forest */
+    --primary-subtle: rgba(46, 92, 69, 0.08);
+
+    /* ─────────────────────────────────────────
+     NEUTRALS - Fond "légèrement vert blanc"
+     ───────────────────────────────────────── */
+    --bg-app: #f2f7f5;
+    /* Very pale mint/white */
+    --bg-panel: #ffffff;
+    /* Pure white panels */
+    --bg-elevated: #f8fbf9;
+    /* Slightly off-white */
+    --bg-hover: #e6efe9;
+    /* Light organic hover */
+    --bg-active: #d9e6de;
+
+    --border: #d4e0da;
+    /* Soft green-grey border */
+    --border-light: #c0d1c9;
+    --border-focus: var(--primary);
+
+    /* ─────────────────────────────────────────
+     TEXT - "Écrito plus foncé"
+     ───────────────────────────────────────── */
+    --text-primary: #12221b;
+    /* Very dark green-black */
+    --text-secondary: #354a40;
+    /* Dark organic grey */
+    --text-muted: #5f756a;
+    /* Muted sage */
+    --text-disabled: #94a39d;
+
+    /* ─────────────────────────────────────────
+     SEMANTIC
+     ───────────────────────────────────────── */
+    --success: #2e5c45;
+    --success-bg: rgba(46, 92, 69, 0.1);
+    --warning: #d9a01c;
+    --warning-bg: rgba(217, 160, 28, 0.12);
+    --danger: #c44536;
+    --danger-bg: rgba(196, 69, 54, 0.1);
+    --info: #3d6b7a;
+    --info-bg: rgba(61, 107, 122, 0.12);
+
+    /* ─────────────────────────────────────────
+     SPACING
+     ───────────────────────────────────────── */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 20px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* ─────────────────────────────────────────
+     TYPOGRAPHY
+     ───────────────────────────────────────── */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* ─────────────────────────────────────────
+     BORDERS & SHADOWS
+     ───────────────────────────────────────── */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    --shadow-sm: 0 1px 2px rgba(18, 34, 27, 0.05);
+    --shadow-md: 0 4px 12px rgba(18, 34, 27, 0.08);
+    --shadow-lg: 0 8px 24px rgba(18, 34, 27, 0.12);
+
+    /* ─────────────────────────────────────────
+     TRANSITIONS
+     ───────────────────────────────────────── */
+    --transition-fast: 0.1s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+}
