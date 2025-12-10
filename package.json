@@ -12,6 +12,7 @@
   "dependencies": {
     "@turf/area": "^7.3.1",
     "@turf/helpers": "^7.3.1",
+    "@vercel/analytics": "^1.6.1",
     "leaflet": "^1.9.4",
     "pdfjs-dist": "^5.4.449",
     "react": "^19.2.0",
