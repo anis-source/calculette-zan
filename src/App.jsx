@@ -4,7 +4,42 @@ import VisualPanel from './components/VisualPanel';
 import MapPanel from './components/MapPanel';
 import './App.css';
 
+// Composant Page d'accueil
+function WelcomePage({ onEnter }) {
+  return (
+    <div className="welcome-page">
+      <div className="welcome-content">
+        <div className="welcome-logo-container">
+          <div className="welcome-logo-glow"></div>
+          <img src="/assets/logo.png" alt="Logo ZAN" className="welcome-logo" />
+        </div>
+        <h1 className="welcome-title">
+          Bienvenue sur la <span className="welcome-highlight">Calculette ZAN</span>
+        </h1>
+        <p className="welcome-subtitle">
+          Simulez et visualisez l'artificialisation des sols pour vos projets d'aménagement
+        </p>
+        <button className="welcome-cta" onClick={onEnter}>
+          <span>Accéder à la synthèse</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div className="welcome-decoration">
+        <div className="decoration-circle decoration-circle-1"></div>
+        <div className="decoration-circle decoration-circle-2"></div>
+        <div className="decoration-circle decoration-circle-3"></div>
+      </div>
+      <footer className="welcome-footer">
+        <span>Outil de simulation ZAN • Zéro Artificialisation Nette</span>
+      </footer>
+    </div>
+  );
+}
+
 function App() {
+  const [showWelcome, setShowWelcome] = useState(true);
   const [rightPanelMode, setRightPanelMode] = useState('bars');
   const [totalSurface, setTotalSurface] = useState(0);
   const [projects, setProjects] = useState([
@@ -113,6 +148,11 @@ function App() {
   const cancelDrawing = () => {
     setDrawingCategoryId(null);
   };
+
+  // Afficher la page d'accueil si showWelcome est true
+  if (showWelcome) {
+    return <WelcomePage onEnter={() => setShowWelcome(false)} />;
+  }
 
   return (
     <div className="app-container">
